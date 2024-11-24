@@ -4,16 +4,14 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
-  try {
-    
-    if (!email || !password) {
-      res.status(400).json({ message: "Email and password are required." });
-      return;
-    }
+  if (!email || !password || !role) {
+    res.status(400).json({ message: "Email, password, and role are required." });
+    return;
+  }
 
-    
+  try {  
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -21,7 +19,11 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    
+    if (user.role !== role) {
+      res.status(403).json({ message: "Role mismatch. You do not have access to this area." });
+      return;
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -41,6 +43,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       token
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error.", error });
+    res.status(500).json({ message: "Internal server error." });
   }
 };
