@@ -3,6 +3,7 @@ import connectDB from "./config/db";
 import routes from "./routes";
 import dotenv from "dotenv";
 import errorHandler from "./middleware/errorMiddleware";
+import patientRoutes from "./routes/patientRoutes";
 
 dotenv.config(); 
 
@@ -18,6 +19,7 @@ app.use(errorHandler);
 
 
 app.use("/api", routes);
+app.use("/api/patients", patientRoutes);
 
 
 const PORT = process.env.PORT || 3000;

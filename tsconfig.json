@@ -9,6 +9,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src"],
+  "include": ["src/**/*","src/types/express"],
   "exclude": ["node_modules", "dist"]
 }
