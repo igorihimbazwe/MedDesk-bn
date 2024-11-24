@@ -19,7 +19,7 @@ const corsOptions: cors.CorsOptions = {
   credentials: true,
 };
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_EN === 'production') {
   corsOptions.origin = process.env.FRONTEND_URL;
 } else {
   corsOptions.origin = 'http://localhost:5173';
