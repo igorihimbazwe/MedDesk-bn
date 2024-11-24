@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IPatient extends Document {
-  name: string;
+    name: string;
+    phoneNumber: string;
   dateOfAppointment: Date;
-  reason: string;
+  reason?: string;
   doctorAssigned: mongoose.Types.ObjectId;
 }
 
@@ -12,14 +13,18 @@ const PatientSchema = new Schema<IPatient>(
     name: {
       type: String,
       required: true,
-    },
+        },
+    phoneNumber: {
+      type: String,
+      required: true,
+      },
     dateOfAppointment: {
       type: Date,
       required: true,
     },
     reason: {
       type: String,
-      required: true,
+      required: false,
     },
     doctorAssigned: {
       type: mongoose.Schema.Types.ObjectId,

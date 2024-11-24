@@ -9,22 +9,41 @@ router.post(
   "/add",
   protect,
   checkRole("receptionist"),
-  async (req, res): Promise<void> => {  
-    const { name, dateOfAppointment, reason } = req.body;
+  async (req, res): Promise<void> => {
+    const { name, phoneNumber, reason } = req.body;
 
     try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const existingPatient = await Patient.findOne({
+        phoneNumber,
+        dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
+      });
+
+      if (existingPatient) {
+        res.status(400).json({ message: "This patient already has a doctor assigned for today." });
+        return;
+      }
+
       const doctors = await User.find({ role: "doctor" });
 
       if (!doctors.length) {
         res.status(400).json({ message: "No doctors available." });
-        return;  
+        return;
       }
 
       let selectedDoctor = null;
       let minPatients = Infinity;
 
       for (const doctor of doctors) {
-        const patientCount = await Patient.countDocuments({ doctorAssigned: doctor._id });
+        const patientCount = await Patient.countDocuments({
+          doctorAssigned: doctor._id,
+          dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
+        });
 
         if (patientCount < minPatients) {
           selectedDoctor = doctor;
@@ -34,12 +53,13 @@ router.post(
 
       if (!selectedDoctor) {
         res.status(400).json({ message: "No available doctor to assign." });
-        return;  // Return after responding
+        return;
       }
 
       const newPatient = new Patient({
         name,
-        dateOfAppointment,
+        phoneNumber,
+        dateOfAppointment: new Date(),
         reason,
         doctorAssigned: selectedDoctor._id,
       });
