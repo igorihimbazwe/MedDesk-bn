@@ -1,59 +1,59 @@
-***Patient Management System***
-**Description**
-A patient management system for a healthcare facility where Receptionists can assign patients to available doctors, and Doctors can mark their patients as complete. This system allows tracking of patient appointments, reasons for visit, and the receptionist who assigned the patient.
+***Patient Management System***<br>
+**Description**<br>
+A patient management system for a healthcare facility where Receptionists can assign patients to available doctors, and Doctors can mark their patients as complete. This system allows tracking of patient appointments, reasons for visit, and the receptionist who assigned the patient.<br>
 
-**Features**
-**Receptionist:**
+**Features**<br>
+**Receptionist:**<br>
 
-Add new patients with their name, phone number, reason, and assigned doctor.
-View all patients assigned to them (with reason).
-Edit patient details (name and reason) if the patient is in pending status.
-**Doctor:**
+Add new patients with their name, phone number, reason, and assigned doctor.<br>
+View all patients assigned to them (with reason).<br>
+Edit patient details (name and reason) if the patient is in pending status.<br>
+**Doctor:**<br>
 
-View all patients assigned to them.
-Mark patient status from pending to complete once the treatment is done.
-**Technologies**
-**Node.js**: Backend server.
-**Express**: Web framework for Node.js.
-**Mongoose**: ODM for MongoDB.
-**MongoDB**: Database to store patient and user data.
-**TypeScript**: Type-safe JavaScript for building the backend.
-**JWT Authentication**: For protected routes.
-**Role-based Access Control**: Ensures proper authorization (receptionists and doctors).
-***Installation***
-**Prerequisites**
-Node.js (v16 or higher)
-MongoDB (locally or using MongoDB Atlas)
+View all patients assigned to them.<br>
+Mark patient status from pending to complete once the treatment is done.<br>
+**Technologies**<br>
+**Node.js**: Backend server.<br>
+**Express**: Web framework for Node.js.<br>
+**Mongoose**: ODM for MongoDB.<br>
+**MongoDB**: Database to store patient and user data.<br>
+**TypeScript**: Type-safe JavaScript for building the backend.<br>
+**JWT Authentication**: For protected routes.<br>
+**Role-based Access Control**: Ensures proper authorization (receptionists and doctors).<br>
+***Installation***<br>
+**Prerequisites**<br>
+Node.js (v16 or higher)<br>
+MongoDB (locally or using MongoDB Atlas)<br>
 
-**Steps**
-Clone the repository:
-`git clone https://github.com/your-username/patient-management-system.git`
-Navigate to the project directory:
-`cd patient-management-system`
-Install dependencies:
-`npm install`
-Set up environment variables:
+**Steps**<br>
+Clone the repository:<br>
+`git clone https://github.com/your-username/patient-management-system.git`<br>
+Navigate to the project directory:<br>
+`cd patient-management-system`<br>
+Install dependencies:<br>
+`npm install`<br>
+Set up environment variables:<br>
 
-Create a .env file in the root of the project.
-Add the following variables (replace with actual values):
+Create a .env file in the root of the project.<br>
+Add the following variables (replace with actual values):<br>
 `MONGO_URI=your_mongo_connection_string
-JWT_SECRET=your_jwt_secret_key
+JWT_SECRET=your_jwt_secret_key<br>
 `
-Run the development server using nodemon:
-`npm run dev`
+Run the development server using nodemon:<br>
+`npm run dev`<br>
 
-The server should now be running on http://localhost:3000
+The server should now be running on [http://localhost:3000](https://meddesk-bn.onrender.com)<br>
 
-**Scripts**
-npm run build: Compiles TypeScript files to JavaScript.
-npm run dev: Starts the development server using ts-node with nodemon for auto-reload.
-npm run seed: Runs the seed script to populate the database with initial data.
+**Scripts**<br>
+npm run build: Compiles TypeScript files to JavaScript.<br>
+npm run dev: Starts the development server using ts-node with nodemon for auto-reload.<br>
+npm run seed: Runs the seed script to populate the database with initial data.<br>
 
-**Contributing**
-Feel free to fork and submit pull requests for new features or improvements. Ensure all code adheres to the project's style guidelines.
+**Contributing**<br>
+Feel free to fork and submit pull requests for new features or improvements. Ensure all code adheres to the project's style guidelines.<br>
 
-Devs: -Igor IHIMBAZWE
-      -Olivier BYIRINGIRO
+Devs: -Igor IHIMBAZWE<br>
+      -Olivier BYIRINGIRO<br>
 
 
 
