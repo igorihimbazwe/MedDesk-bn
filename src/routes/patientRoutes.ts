@@ -68,12 +68,17 @@ router.post(
       });
 
       await newPatient.save();
-      res.status(201).json({ message: "Patient added successfully", patient: newPatient });
+
+     
+      const populatedPatient = await Patient.findById(newPatient._id).populate("doctorAssigned", "id name");
+
+      res.status(201).json({ message: "Patient added successfully", patient: populatedPatient });
     } catch (error: any) {
       res.status(500).json({ message: "Error adding patient", error: error.message });
     }
   }
 );
+
 
 router.get(
   "/assigned-patients",
