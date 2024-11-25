@@ -1,11 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IPatient extends Document {
-    name: string;
-    phoneNumber: string;
+  name: string;
+  phoneNumber: string;
   dateOfAppointment: Date;
-  reason?: string;
+  reason: string;
   doctorAssigned: mongoose.Types.ObjectId;
+  status: "pending" | "complete";
+  receptionist: mongoose.Types.ObjectId;
 }
 
 const PatientSchema = new Schema<IPatient>(
@@ -13,11 +15,11 @@ const PatientSchema = new Schema<IPatient>(
     name: {
       type: String,
       required: true,
-        },
+    },
     phoneNumber: {
       type: String,
       required: true,
-      },
+    },
     dateOfAppointment: {
       type: Date,
       required: true,
@@ -27,6 +29,16 @@ const PatientSchema = new Schema<IPatient>(
       required: false,
     },
     doctorAssigned: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "complete"],
+      default: "pending",
+    },
+    receptionist: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,

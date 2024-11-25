@@ -56,18 +56,46 @@ router.post(
         return;
       }
 
+      const receptionistId = req.user?.id; // Extract receptionist ID from the authenticated user
+
       const newPatient = new Patient({
         name,
         phoneNumber,
         dateOfAppointment: new Date(),
         reason,
         doctorAssigned: selectedDoctor._id,
+        receptionist: receptionistId,
       });
 
       await newPatient.save();
       res.status(201).json({ message: "Patient added successfully", patient: newPatient });
     } catch (error: any) {
       res.status(500).json({ message: "Error adding patient", error: error.message });
+    }
+  }
+);
+
+router.get(
+  "/assigned-patients",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      let patients;
+
+      if (userRole === "receptionist") {
+        patients = await Patient.find({ receptionist: userId }).populate("doctorAssigned", "name email");
+        res.status(200).json({ message: "Patients assigned by you", patients });
+      } else if (userRole === "doctor") {
+        patients = await Patient.find({ doctorAssigned: userId }).populate("receptionist", "name email");
+        res.status(200).json({ message: "Patients assigned to you", patients });
+      } else {
+        res.status(403).json({ message: "Access denied. Only receptionist and doctor can view assigned patients." });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching assigned patients", error: error.message });
     }
   }
 );
