@@ -56,7 +56,7 @@ router.post(
         return;
       }
 
-      const receptionistId = req.user?.id; // Extract receptionist ID from the authenticated user
+      const receptionistId = req.user?.id;
 
       const newPatient = new Patient({
         name,
@@ -99,5 +99,47 @@ router.get(
     }
   }
 );
+
+router.put(
+  "/mark-complete/:id",
+  protect,
+  checkRole("doctor"),
+  async (req, res): Promise<void> => {
+    const { id } = req.params;
+
+    try {
+      const patient = await Patient.findById(id);
+
+      if (!patient) {
+        res.status(404).json({ message: "Patient not found" });
+        return;
+      }
+
+      
+      const doctorId = req.user!.id;
+
+      if (patient.doctorAssigned.toString() !== doctorId) {
+        res.status(403).json({ message: "You are not assigned to this patient." });
+        return;
+      }
+
+      if (patient.status !== "pending") {
+        res
+          .status(400)
+          .json({ message: "Only patients with a pending status can be marked as complete." });
+        return;
+      }
+
+      
+      patient.status = "complete";
+      await patient.save({ validateModifiedOnly: true });
+
+      res.status(200).json({ message: "Patient status updated to complete", patient });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating patient status", error: error.message });
+    }
+  }
+);
+
 
 export default router;
