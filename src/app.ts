@@ -14,7 +14,7 @@ const app: Application = express();
 connectDB();
 
 const corsOptions: cors.CorsOptions = {
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
@@ -37,6 +37,7 @@ app.use("/api/patients", patientRoutes);
 
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

@@ -8,6 +8,11 @@ export interface IPatient extends Document {
   doctorAssigned: mongoose.Types.ObjectId;
   status: "pending" | "complete";
   receptionist: mongoose.Types.ObjectId;
+  gender: "male" | "female" | "other";
+  fatherName: string;
+  motherName: string;
+  sector: string;
+  insurance: string;
 }
 
 const PatientSchema = new Schema<IPatient>(
@@ -42,6 +47,27 @@ const PatientSchema = new Schema<IPatient>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
+      required: true,
+    },
+    fatherName: {
+      type: String,
+      required: true,
+    },
+    motherName: {
+      type: String,
+      required: true,
+    },
+    sector: {
+      type: String,
+      required: true,
+    },
+    insurance: {
+      type: String,
+      required: false,
     },
   },
   {
