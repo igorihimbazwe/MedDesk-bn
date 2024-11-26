@@ -5,23 +5,44 @@ import User from "../models/user";
 
 const router = express.Router();
 
+import { isValid, parse } from "date-fns";
+
 router.post(
   "/add",
   protect,
   checkRole("receptionist"),
   async (req, res): Promise<void> => {
-    const { name, phoneNumber, reason } = req.body;
+    const {
+      name,
+      phoneNumber,
+      reason,
+      gender,
+      fatherName,
+      motherName,
+      sector,
+      insurance,
+      dateOfAppointment, 
+    } = req.body;
 
     try {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      
+      if (!dateOfAppointment) {
+        res.status(400).json({ message: "dateOfAppointment is required." });
+        return;
+      }
 
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+      const parsedDate = parse(dateOfAppointment, "yyyy-MM-dd", new Date());
+      if (!isValid(parsedDate)) {
+        res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
+        return;
+      }
 
       const existingPatient = await Patient.findOne({
         phoneNumber,
-        dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
+        dateAssigned: {
+          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          $lte: new Date(new Date().setHours(23, 59, 59, 999)),
+        },
       });
 
       if (existingPatient) {
@@ -29,7 +50,7 @@ router.post(
         return;
       }
 
-      const doctors = await User.find({ role: "doctor" });
+      const doctors = await User.find({ role: "doctor",  status: "active"  });
 
       if (!doctors.length) {
         res.status(400).json({ message: "No doctors available." });
@@ -42,7 +63,10 @@ router.post(
       for (const doctor of doctors) {
         const patientCount = await Patient.countDocuments({
           doctorAssigned: doctor._id,
-          dateOfAppointment: { $gte: startOfDay, $lte: endOfDay },
+          dateAssigned: {
+            $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            $lte: new Date(new Date().setHours(23, 59, 59, 999)),
+          },
         });
 
         if (patientCount < minPatients) {
@@ -61,15 +85,20 @@ router.post(
       const newPatient = new Patient({
         name,
         phoneNumber,
-        dateOfAppointment: new Date(),
+        dateAssigned: new Date(),
+        dateOfAppointment: parsedDate, 
         reason,
+        gender,
+        fatherName,
+        motherName,
+        sector,
+        insurance,
         doctorAssigned: selectedDoctor._id,
         receptionist: receptionistId,
       });
 
       await newPatient.save();
 
-     
       const populatedPatient = await Patient.findById(newPatient._id).populate("doctorAssigned", "id name");
 
       res.status(201).json({ message: "Patient added successfully", patient: populatedPatient });
@@ -78,6 +107,8 @@ router.post(
     }
   }
 );
+
+
 
 
 router.get(
@@ -101,6 +132,41 @@ router.get(
       }
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching assigned patients", error: error.message });
+    }
+  }
+);
+
+router.put(
+  "/edit/:id",
+  protect,
+  checkRole("receptionist"),
+  async (req, res): Promise<void> => {
+    const { id } = req.params;
+    const { name, reason } = req.body;
+
+    try {
+      const patient = await Patient.findById(id);
+
+      if (!patient) {
+        res.status(404).json({ message: "Patient not found" });
+        return;
+      }
+
+      if (patient.status !== "pending") {
+        res
+          .status(400)
+          .json({ message: "Only patients with a pending status can be updated." });
+        return;
+      }
+
+      
+      if (name) patient.name = name;
+      if (reason) patient.reason = reason;
+
+      await patient.save();
+      res.status(200).json({ message: "Patient updated successfully", patient });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating patient", error: error.message });
     }
   }
 );
@@ -145,6 +211,86 @@ router.put(
     }
   }
 );
+
+router.get(
+  "/filter-by-appointment",
+  protect,
+  async (req, res): Promise<void> => {
+    const { filter } = req.query; 
+
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
+      const dayAfterTomorrow = new Date(tomorrow);
+      dayAfterTomorrow.setDate(tomorrow.getDate() + 1);
+
+      let dateFilter: any;
+
+      if (filter === "today") {
+        dateFilter = {
+          dateOfAppointment: {
+            $gte: today,
+            $lt: tomorrow,
+          },
+        };
+      } else if (filter === "tomorrow") {
+        dateFilter = {
+          dateOfAppointment: {
+            $gte: tomorrow,
+            $lt: dayAfterTomorrow,
+          },
+        };
+      } else if (filter === "others") {
+        dateFilter = {
+          dateOfAppointment: {
+            $gte: dayAfterTomorrow,
+          },
+        };
+      } else {
+        res.status(400).json({ message: "Invalid filter value. Use 'today', 'tomorrow', or 'others'." });
+        return;
+      }
+
+      const patients = await Patient.find(dateFilter).populate("doctorAssigned", "name").populate("receptionist", "name");
+
+      res.status(200).json({ message: "Filtered patients fetched successfully", patients });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error filtering patients", error: error.message });
+    }
+  }
+);
+
+router.get(
+  "/dashboard-stats",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      
+      const [totalPatients, pendingPatients, completePatients, totalDoctors,activeDoctors] = await Promise.all([
+        Patient.countDocuments(), 
+        Patient.countDocuments({ status: "pending" }), 
+        Patient.countDocuments({ status: "complete" }), 
+        User.countDocuments({role:"doctor"}),
+        User.countDocuments({ role: "doctor", status: "active" }), 
+      ]);
+
+      res.status(200).json({
+        totalPatients,
+        pendingPatients,
+        completePatients,
+          totalDoctors,
+        activeDoctors,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching dashboard statistics", error: error.message });
+    }
+  }
+);
+
 
 
 export default router;
