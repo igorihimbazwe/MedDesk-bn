@@ -7,18 +7,10 @@ dotenv.config();
 
 const seedUsers = async () => {
   try {
-    
-    await connectDB();
+    await connectDB(); 
 
-    
     const users = [
-      {
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com",
-        password: "medidesk@123",
-        phoneNumber: "123-456-7890",
-        role: UserRole.DOCTOR,
-      },
+      
       {
         name: "UMULISA Alice",
         email: "umulisaalice@gmail.com",
@@ -47,12 +39,58 @@ const seedUsers = async () => {
         phoneNumber: "098-765-4301",
         role: UserRole.RECEPTIONIST,
       },
+
+      
+      {
+        name: "Alice Johnson",
+        email: "alice.johnson@example.com",
+        password: "medidesk@123",
+        phoneNumber: "123-456-7890",
+        role: UserRole.DOCTOR,
+        status: "active", 
+      },
       {
         name: "Charlie Brown",
         email: "charlie.brown@example.com",
         password: "medidesk@123",
         phoneNumber: "555-555-5555",
         role: UserRole.DOCTOR,
+        status: "active",
+      },
+
+      
+      {
+        name: "Dr. Eugene Lambert",
+        email: "eugene.lambert@example.com",
+        password: "medidesk@123",
+        phoneNumber: "987-654-3210",
+        role: UserRole.DOCTOR,
+        status: "not available", 
+      },
+
+      
+      {
+        name: "Dr. Clara Wilson",
+        email: "clara.wilson@example.com",
+        password: "medidesk@123",
+        phoneNumber: "111-222-3333",
+        role: UserRole.DOCTOR,
+        status: "active",
+      },
+      {
+        name: "Dr. Olivia Martinez",
+        email: "olivia.martinez@example.com",
+        password: "medidesk@123",
+        phoneNumber: "222-333-4444",
+        role: UserRole.DOCTOR,
+        status: "active",
+      },
+      {
+        name: "Receptionist Jane Doe",
+        email: "jane.doe@example.com",
+        password: "medidesk@123",
+        phoneNumber: "333-444-5555",
+        role: UserRole.RECEPTIONIST,
       },
     ];
 
@@ -60,20 +98,17 @@ const seedUsers = async () => {
     const hashedUsers = await Promise.all(
       users.map(async (user) => ({
         ...user,
-        password: await bcrypt.hash(user.password, 10), 
+        password: await bcrypt.hash(user.password, 10),
       }))
     );
 
     
     await User.deleteMany();
-
-    
     await User.insertMany(hashedUsers);
 
     console.log("Seed data successfully inserted!");
 
-    
-    process.exit(0);
+    process.exit(0); 
   } catch (error) {
     console.error("Error seeding data:", error);
     process.exit(1);

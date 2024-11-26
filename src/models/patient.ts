@@ -3,16 +3,17 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IPatient extends Document {
   name: string;
   phoneNumber: string;
-  dateOfAppointment: Date;
+  dateAssigned: Date;
+  dateOfAppointment: Date; 
   reason: string;
   doctorAssigned: mongoose.Types.ObjectId;
   status: "pending" | "complete";
   receptionist: mongoose.Types.ObjectId;
-  gender: "male" | "female" | "other";
-  fatherName: string;
-  motherName: string;
-  sector: string;
-  insurance: string;
+  gender: "male" | "female" | "other"; 
+  fatherName?: string;
+  motherName?: string;
+  sector?: string;
+  insurance?: string;
 }
 
 const PatientSchema = new Schema<IPatient>(
@@ -25,7 +26,11 @@ const PatientSchema = new Schema<IPatient>(
       type: String,
       required: true,
     },
-    dateOfAppointment: {
+    dateAssigned: {
+      type: Date,
+      required: true,
+    },
+    dateOfAppointment: { 
       type: Date,
       required: true,
     },
@@ -51,19 +56,18 @@ const PatientSchema = new Schema<IPatient>(
     gender: {
       type: String,
       enum: ["male", "female", "other"],
-      required: true,
     },
     fatherName: {
       type: String,
-      required: true,
+      required: false,
     },
     motherName: {
       type: String,
-      required: true,
+      required: false,
     },
     sector: {
       type: String,
-      required: true,
+      required: false,
     },
     insurance: {
       type: String,
