@@ -2,6 +2,7 @@ import express from "express";
 import { protect, checkRole } from "../middleware/authMiddleware";
 import Patient from "../models/patient";
 import User from "../models/user";
+import { startOfDay, endOfDay } from "date-fns";
 
 const router = express.Router();
 
@@ -119,14 +120,28 @@ router.get(
       const userRole = req.user?.role;
       const userId = req.user?.id;
 
+      
+      const todayStart = startOfDay(new Date());
+      const todayEnd = endOfDay(new Date());
+
       let patients;
 
       if (userRole === "receptionist") {
-        patients = await Patient.find({ receptionist: userId }).populate("doctorAssigned", "name email");
-        res.status(200).json({ message: "Patients assigned by you", patients });
+        
+        patients = await Patient.find({
+          receptionist: userId,
+          dateAssigned: { $gte: todayStart, $lte: todayEnd },
+        }).populate("doctorAssigned", "name email");
+
+        res.status(200).json({ message: "Patients assigned by you for today", patients });
       } else if (userRole === "doctor") {
-        patients = await Patient.find({ doctorAssigned: userId }).populate("receptionist", "name email");
-        res.status(200).json({ message: "Patients assigned to you", patients });
+        
+        patients = await Patient.find({
+          doctorAssigned: userId,
+          dateOfAppointment: { $gte: todayStart, $lte: todayEnd },
+        }).populate("receptionist", "name email");
+
+        res.status(200).json({ message: "Patients with appointments today", patients });
       } else {
         res.status(403).json({ message: "Access denied. Only receptionist and doctor can view assigned patients." });
       }
@@ -162,17 +177,17 @@ router.put(
         return;
       }
 
-      // Handle dateOfAppointment if it's provided
+      
       if (dateOfAppointment) {
         const parsedDate = parse(dateOfAppointment, "yyyy-MM-dd", new Date());
         if (!isValid(parsedDate)) {
           res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
           return;
         }
-        patient.dateOfAppointment = parsedDate; // Update the date
+        patient.dateOfAppointment = parsedDate; 
       }
 
-      // Update other fields if provided
+      
       if (name) patient.name = name;
       if (phoneNumber) patient.phoneNumber = phoneNumber;
       if (reason) patient.reason = reason;
@@ -237,6 +252,14 @@ router.get(
     const { filter } = req.query; 
 
     try {
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      if (userRole !== "doctor") {
+          res.status(403).json({ message: "Access denied. Only doctors can filter patients by appointment." });
+          return; 
+      }
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -269,11 +292,16 @@ router.get(
           },
         };
       } else {
-        res.status(400).json({ message: "Invalid filter value. Use 'today', 'tomorrow', or 'others'." });
-        return;
+          res.status(400).json({ message: "Invalid filter value. Use 'today', 'tomorrow', or 'others'." });
+          return;
       }
 
-      const patients = await Patient.find(dateFilter).populate("doctorAssigned", "name").populate("receptionist", "name");
+      
+      dateFilter.doctorAssigned = userId;
+
+      const patients = await Patient.find(dateFilter)
+        .populate("doctorAssigned", "name")
+        .populate("receptionist", "name");
 
       res.status(200).json({ message: "Filtered patients fetched successfully", patients });
     } catch (error: any) {
@@ -287,27 +315,54 @@ router.get(
   protect,
   async (req, res): Promise<void> => {
     try {
-      
-      const [totalPatients, pendingPatients, completePatients, totalDoctors,activeDoctors] = await Promise.all([
-        Patient.countDocuments(), 
-        Patient.countDocuments({ status: "pending" }), 
-        Patient.countDocuments({ status: "complete" }), 
-        User.countDocuments({role:"doctor"}),
-        User.countDocuments({ role: "doctor", status: "active" }), 
-      ]);
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
 
-      res.status(200).json({
-        totalPatients,
-        pendingPatients,
-        completePatients,
+      if (userRole === "receptionist") {
+        
+        const [
+          totalPatients,
+          pendingPatients,
+          completePatients,
           totalDoctors,
-        activeDoctors,
-      });
+          activeDoctors,
+        ] = await Promise.all([
+          Patient.countDocuments(), 
+          Patient.countDocuments({ status: "pending" }), 
+          Patient.countDocuments({ status: "complete" }), 
+          User.countDocuments({ role: "doctor" }), 
+          User.countDocuments({ role: "doctor", status: "active" }), 
+        ]);
+
+        res.status(200).json({
+          totalPatients,
+          pendingPatients,
+          completePatients,
+          totalDoctors,
+          activeDoctors,
+        });
+      } else if (userRole === "doctor") {
+        
+        const [totalAssigned, pendingAssigned, completeAssigned] = await Promise.all([
+          Patient.countDocuments({ doctorAssigned: userId }), 
+          Patient.countDocuments({ doctorAssigned: userId, status: "pending" }), 
+          Patient.countDocuments({ doctorAssigned: userId, status: "complete" }), 
+        ]);
+
+        res.status(200).json({
+          totalAssigned,
+          pendingAssigned,
+          completeAssigned,
+        });
+      } else {
+        res.status(403).json({ message: "Access denied. Only receptionists and doctors can access this data." });
+      }
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching dashboard statistics", error: error.message });
     }
   }
 );
+
 
 
 
