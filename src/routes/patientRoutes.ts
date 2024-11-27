@@ -142,7 +142,12 @@ router.put(
   checkRole("receptionist"),
   async (req, res): Promise<void> => {
     const { id } = req.params;
-    const { name, reason } = req.body;
+    const {
+      name,
+      phoneNumber,
+      reason,
+      dateOfAppointment,
+    } = req.body;
 
     try {
       const patient = await Patient.findById(id);
@@ -153,23 +158,36 @@ router.put(
       }
 
       if (patient.status !== "pending") {
-        res
-          .status(400)
-          .json({ message: "Only patients with a pending status can be updated." });
+        res.status(400).json({ message: "Only patients with a pending status can be updated." });
         return;
       }
 
-      
+      // Handle dateOfAppointment if it's provided
+      if (dateOfAppointment) {
+        const parsedDate = parse(dateOfAppointment, "yyyy-MM-dd", new Date());
+        if (!isValid(parsedDate)) {
+          res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
+          return;
+        }
+        patient.dateOfAppointment = parsedDate; // Update the date
+      }
+
+      // Update other fields if provided
       if (name) patient.name = name;
+      if (phoneNumber) patient.phoneNumber = phoneNumber;
       if (reason) patient.reason = reason;
 
       await patient.save();
-      res.status(200).json({ message: "Patient updated successfully", patient });
+
+      const populatedPatient = await Patient.findById(patient._id).populate("doctorAssigned", "id name");
+
+      res.status(200).json({ message: "Patient updated successfully", populatedPatient });
     } catch (error: any) {
       res.status(500).json({ message: "Error updating patient", error: error.message });
     }
   }
 );
+
 
 router.put(
   "/mark-complete/:id",
