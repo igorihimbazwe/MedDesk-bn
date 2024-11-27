@@ -13,7 +13,7 @@ router.post(
   checkRole("receptionist"),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { name, email, password, phoneNumber } = req.body;
+      const { name, email, phoneNumber } = req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
@@ -21,6 +21,7 @@ router.post(
         return;
       }
 
+      const password = 'medidesk@123';
       const newDoctor = new User({
         name,
         email,
