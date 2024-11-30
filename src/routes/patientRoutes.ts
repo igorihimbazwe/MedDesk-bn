@@ -2,6 +2,7 @@ import express from "express";
 import { protect, checkRole } from "../middleware/authMiddleware";
 import Patient from "../models/patient";
 import User from "../models/user";
+import moment from 'moment';
 import { startOfDay, endOfDay } from "date-fns";
 
 const router = express.Router();
@@ -363,7 +364,203 @@ router.get(
   }
 );
 
+router.get(
+  "/dashboard-stats-doc",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      const startDate = req.query.startDate 
+      ? moment(req.query.startDate as string).startOf('day').toDate() 
+      : moment().startOf('day').toDate();
+    
+    const endDate = req.query.endDate 
+      ? moment(req.query.endDate as string).endOf('day').toDate() 
+      : moment().endOf('day').toDate();
+
+      if (userRole === "doctor") {
+        const [totalAssigned, pendingAssigned, completeAssigned] = await Promise.all([
+          Patient.countDocuments({
+            doctorAssigned: userId,
+            dateOfAppointment: {
+              $gte: startDate,
+              $lte: endDate,
+            }
+          }),
+          Patient.countDocuments({
+            doctorAssigned: userId,
+            status: "pending",
+            dateOfAppointment: {
+              $gte: startDate,
+              $lte: endDate,
+            }
+          }),
+          Patient.countDocuments({
+            doctorAssigned: userId,
+            status: "complete",
+            dateOfAppointment: {
+              $gte: startDate,
+              $lte: endDate,
+            }
+          }),
+        ]);
+
+        res.status(200).json({
+          totalPatients: totalAssigned,
+          pendingPatients: pendingAssigned,
+          completePatients: completeAssigned,
+          timeRange: { startDate, endDate },
+        });
+      } else {
+        res.status(403).json({ message: "Access denied. Only doctors can access this data." });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching dashboard statistics", error: error.message });
+    }
+  }
+);
 
 
+router.get(
+  "/filter-by-appointment-doc",
+  protect,
+  async (req, res): Promise<void> => {
+    const { startDate, endDate } = req.query;
+
+    try {
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      if (userRole !== "doctor") {
+        res.status(403).json({ message: "Access denied. Only doctors can filter patients by appointment." });
+        return;
+      }
+
+      const start = startDate 
+        ? moment(startDate as string).startOf('day').toDate()
+        : moment().startOf('day').toDate();
+        
+      const end = endDate 
+        ? moment(endDate as string).endOf('day').toDate()
+        : moment().endOf('day').toDate();
+
+      const dateFilter = {
+        doctorAssigned: userId,
+        dateOfAppointment: {
+          $gte: start,
+          $lte: end,
+        },
+      };
+
+      const patients = await Patient.find(dateFilter)
+        .populate("doctorAssigned", "name")
+        .populate("receptionist", "name");
+
+      res.status(200).json({
+        message: "Filtered patients fetched successfully",
+        patients,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error filtering patients", error: error.message });
+    }
+  }
+);
+
+router.get(
+  "/dashboard-stats-receptionist",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      const startDate = req.query.startDate
+        ? moment(req.query.startDate as string).startOf('day').toDate()
+        : moment().startOf('day').toDate();
+
+      const endDate = req.query.endDate
+        ? moment(req.query.endDate as string).endOf('day').toDate()
+        : moment().endOf('day').toDate();
+
+      if (userRole !== "receptionist") {
+        res.status(403).json({ message: "Access denied. Only receptionists can access this data." });
+      }
+
+      const assignedReceptionistFilter = { receptionist: userId };
+
+      const [totalAssigned, pendingAssigned, completeAssigned] = await Promise.all([
+        Patient.countDocuments({
+          dateAssigned: { $gte: startDate, $lte: endDate },
+          ...assignedReceptionistFilter
+        }),
+        Patient.countDocuments({
+          status: "pending",
+          dateAssigned: { $gte: startDate, $lte: endDate },
+          ...assignedReceptionistFilter
+        }),
+        Patient.countDocuments({
+          status: "complete",
+          dateAssigned: { $gte: startDate, $lte: endDate },
+          ...assignedReceptionistFilter
+        }),
+      ]);
+
+      res.status(200).json({
+        totalPatients: totalAssigned,
+        pendingPatients: pendingAssigned,
+        completePatients: completeAssigned,
+        timeRange: { startDate, endDate },
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching dashboard statistics", error: error.message });
+    }
+  }
+);
+
+
+router.get(
+  "/filter-by-appointment-receptionist",
+  protect,
+  async (req, res): Promise<void> => {
+    const { startDate, endDate, doctorId, status } = req.query;
+
+    try {
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      if (userRole !== "receptionist") {
+        res.status(403).json({ message: "Access denied. Only receptionists can filter patients by appointment." });
+      }
+
+      const start = startDate
+        ? moment(startDate as string).startOf('day').toDate()
+        : moment().startOf('day').toDate();
+
+      const end = endDate
+        ? moment(endDate as string).endOf('day').toDate()
+        : moment().endOf('day').toDate();
+
+      const dateFilter: any = {
+        dateAssigned: { $gte: start, $lte: end },
+        receptionist: userId,
+      };
+
+      const patients = await Patient.find(dateFilter)
+        .populate("doctorAssigned", "name")
+        .populate("receptionist", "name");
+
+      res.status(200).json({
+        message: "Filtered patients fetched successfully",
+        patients,
+      });
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error filtering patients", error: error.message });
+    }
+  }
+);
 
 export default router;
