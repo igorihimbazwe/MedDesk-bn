@@ -32,7 +32,7 @@ const PatientSchema = new Schema<IPatient>(
     },
     dateOfAppointment: { 
       type: Date,
-      required: true,
+      required: false,
     },
     reason: {
       type: String,
