@@ -1,7 +1,7 @@
-import express from 'express';
+import express,{Request,Response} from 'express';
 import { protect, checkRole } from '../middleware/authMiddleware';
 import Patient from '../models/patient';
-import User from '../models/user';
+import User,{UserRole} from '../models/user';
 import moment from 'moment';
 import mongoose from 'mongoose';
 
@@ -181,5 +181,61 @@ router.get('/doctors-with-stats', protect, async (req, res): Promise<void> => {
       });
   }
 });
+
+router.patch(
+  '/assign-doctor-to-patient/:patientId',
+  protect,
+  checkRole('admin'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { patientId } = req.params;
+      const { doctorId, appointmentDate, editReason } = req.body;
+
+      // Ensure editReason is provided
+      if (!editReason) {
+        res.status(400).json({ message: 'Edit reason is required.' });
+        return;
+      }
+
+      // Validate the doctor ID
+      const doctor = await User.findById(doctorId);
+      if (!doctor || doctor.role !== UserRole.DOCTOR) {
+        res.status(404).json({ message: 'Doctor not found or invalid doctor ID.' });
+        return;
+      }
+
+      // Validate the patient ID
+      const patient = await Patient.findById(patientId);
+      if (!patient) {
+        res.status(404).json({ message: 'Patient not found.' });
+        return;
+      }
+
+      // Update the doctor assignment and appointment date
+      if (doctorId) {
+        patient.doctorAssigned = doctorId;
+      }
+      if (appointmentDate) {
+        patient.dateOfAppointment = new Date(appointmentDate);
+      }
+
+      // Add the edit reason
+      patient.editReason = editReason;
+
+      await patient.save();
+
+      res.status(200).json({
+        message: 'Doctor assigned and/or appointment date updated successfully.',
+        patient,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        message: 'Error updating patient details',
+        error: error.message,
+      });
+    }
+  }
+);
+
 
 export default router;
