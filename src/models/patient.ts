@@ -14,6 +14,8 @@ export interface IPatient extends Document {
   motherName?: string;
   sector?: string;
   insurance?: string;
+  editReason:string;
+  appointmentLocation:string;
 }
 
 const PatientSchema = new Schema<IPatient>(
@@ -32,7 +34,7 @@ const PatientSchema = new Schema<IPatient>(
     },
     dateOfAppointment: { 
       type: Date,
-      required: true,
+      required: false,
     },
     reason: {
       type: String,
@@ -42,6 +44,11 @@ const PatientSchema = new Schema<IPatient>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    editReason: {
+      type: String,
+      required: false,
+      default:null,
     },
     status: {
       type: String,
@@ -73,6 +80,12 @@ const PatientSchema = new Schema<IPatient>(
       type: String,
       required: false,
     },
+    appointmentLocation: {
+      type: String,
+      required: false,
+      default:"Nyarugenge",
+    },
+    
   },
   {
     timestamps: true,

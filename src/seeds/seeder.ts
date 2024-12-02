@@ -14,28 +14,28 @@ const seedUsers = async () => {
       {
         name: "UMULISA Alice",
         email: "umulisaalice@gmail.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "098-765-4371",
         role: UserRole.RECEPTIONIST,
       },
       {
         name: "UGIRUMURENGERA Blaise",
         email: "ugblaise@gmail.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "098-765-4361",
         role: UserRole.RECEPTIONIST,
       },
       {
         name: "NSHIMIYIMANA Jean Claude",
         email: "jeanclaudensh@gmail.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "098-765-4341",
         role: UserRole.RECEPTIONIST,
       },
       {
         name: "OMBENI Vedaste",
         email: "ombenivedaste@gmail.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "098-765-4301",
         role: UserRole.RECEPTIONIST,
       },
@@ -44,7 +44,7 @@ const seedUsers = async () => {
       {
         name: "Alice Johnson",
         email: "alice.johnson@example.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "123-456-7890",
         role: UserRole.DOCTOR,
         status: "active", 
@@ -52,7 +52,7 @@ const seedUsers = async () => {
       {
         name: "Charlie Brown",
         email: "charlie.brown@example.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "555-555-5555",
         role: UserRole.DOCTOR,
         status: "active",
@@ -62,7 +62,7 @@ const seedUsers = async () => {
       {
         name: "Dr. Eugene Lambert",
         email: "eugene.lambert@example.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "987-654-3210",
         role: UserRole.DOCTOR,
         status: "not available", 
@@ -72,7 +72,7 @@ const seedUsers = async () => {
       {
         name: "Dr. Clara Wilson",
         email: "clara.wilson@example.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "111-222-3333",
         role: UserRole.DOCTOR,
         status: "active",
@@ -80,7 +80,7 @@ const seedUsers = async () => {
       {
         name: "Dr. Olivia Martinez",
         email: "olivia.martinez@example.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "222-333-4444",
         role: UserRole.DOCTOR,
         status: "active",
@@ -88,7 +88,7 @@ const seedUsers = async () => {
       {
         name: "Receptionist Jane Doe",
         email: "jane.doe@example.com",
-        password: "medidesk@123",
+        password: "amatamamam",
         phoneNumber: "333-444-5555",
         role: UserRole.RECEPTIONIST,
       },

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import errorHandler from "./middleware/errorMiddleware";
 import patientRoutes from "./routes/patientRoutes";
 import doctorRoutes from "./routes/doctor"
+import adminRoutes  from "./routes/adminRoutes"
 
 import cors from "cors";
 
@@ -37,6 +38,7 @@ app.use(errorHandler);
 app.use("/api", routes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/doctor", doctorRoutes);
+app.use("/api/admin", adminRoutes);
 
 
 const PORT = process.env.PORT || 3000;
