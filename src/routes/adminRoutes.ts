@@ -10,15 +10,9 @@ const router = express.Router();
 router.get(
   '/dashboard-stats-admin',
   protect,
+  checkRole('admin','super-admin'),
   async (req, res): Promise<void> => {
     try {
-      const userRole = req.user?.role;
-
-      if (userRole !== 'admin') {
-        res.status(403).json({
-          message: 'Access denied. Only admins can access this data.',
-        });
-      }
 
       const startDate = req.query.startDate
         ? moment(req.query.startDate as string)
@@ -65,18 +59,12 @@ router.get(
 router.get(
   '/filter-by-appointment-admin',
   protect,
+  checkRole('admin','super-admin'),
   async (req, res): Promise<void> => {
     const { startDate, endDate, doctorId, status } = req.query;
 
     try {
-      const userRole = req.user?.role;
 
-      if (userRole !== 'admin') {
-        res.status(403).json({
-          message:
-            'Access denied. Only admins can filter patients by appointment.',
-        });
-      }
 
       const start = startDate
         ? moment(startDate as string)
@@ -110,18 +98,10 @@ router.get(
   },
 );
 
-router.get('/doctors-with-stats', protect, async (req, res): Promise<void> => {
+router.get('/doctors-with-stats', protect,checkRole('admin','super-admin'), async (req, res): Promise<void> => {
   const { startDate, endDate } = req.query;
 
   try {
-    const userRole = req.user?.role;
-
-    if (userRole !== 'admin') {
-      res
-        .status(403)
-        .json({ message: 'Access denied. Only admins can view this data.' });
-      return;
-    }
 
     const start = startDate
       ? moment(startDate as string)
@@ -185,7 +165,7 @@ router.get('/doctors-with-stats', protect, async (req, res): Promise<void> => {
 router.patch(
   '/assign-doctor-to-patient/:patientId',
   protect,
-  checkRole('admin'),
+  checkRole('admin','super-admin'),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { patientId } = req.params;
@@ -233,6 +213,121 @@ router.patch(
         message: 'Error updating patient details',
         error: error.message,
       });
+    }
+  }
+);
+
+router.get(
+  '/super-admin/admins',
+  protect,
+  checkRole('super-admin'),
+  async (req, res): Promise<void> => {
+    try {
+      const admins = await User.find({ role: 'admin' });
+      res.status(200).json({
+        message: 'Admins fetched successfully',
+        admins,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        message: 'Error fetching admins',
+        error: error.message,
+      });
+    }
+  },
+);
+
+// Toggle admin status (active/inactive)
+router.patch(
+  '/super-admin/toggle-admin-status/:adminId',
+  protect,
+  checkRole('super-admin'),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { adminId } = req.params;
+
+      const admin = await User.findById(adminId);
+      if (!admin || admin.role !== 'admin') {
+        res.status(404).json({ message: 'Admin not found or invalid ID.' });
+        return;
+      }
+
+      // Toggle status
+      admin.status = admin.status === 'active' ? 'not available' : 'active';
+      await admin.save();
+
+      res.status(200).json({
+        message: `Admin status toggled to ${admin.status}.`,
+        admin,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        message: 'Error toggling admin status',
+        error: error.message,
+      });
+    }
+  },
+);
+
+router.post(
+  "/add-patient",
+  protect,
+  checkRole('admin','super-admin'),
+  async (req, res): Promise<void> => {
+    const {
+      name,
+      phoneNumber,
+      gender,
+      fatherName,
+      motherName,
+      sector,
+      insurance,
+      doctorAssigned,
+    } = req.body;
+
+    try {
+      const existingPatient = await Patient.findOne({
+        phoneNumber,
+        dateAssigned: {
+          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          $lte: new Date(new Date().setHours(23, 59, 59, 999)),
+        },
+      });
+
+      if (existingPatient) {
+        res
+          .status(400)
+          .json({ message: "This patient already has a doctor assigned for today." });
+          return;
+      }
+
+      const receptionistId = req.user?.id;
+
+      const newPatient = new Patient({
+        name,
+        phoneNumber,
+        dateAssigned: new Date(),
+        reason: "Orthodontic placement",
+        gender,
+        fatherName,
+        motherName,
+        sector,
+        insurance,
+        doctorAssigned,
+        receptionist: receptionistId,
+      });
+
+      await newPatient.save();
+
+      const populatedPatient = await Patient.findById(newPatient._id).populate("doctorAssigned", "id name");
+
+      res.status(201).json({
+        message: "Patient added successfully.",
+        patient: populatedPatient,
+        assignedDoctor: populatedPatient?.doctorAssigned,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error adding patient", error: error.message });
     }
   }
 );

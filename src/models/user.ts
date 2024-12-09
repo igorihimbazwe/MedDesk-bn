@@ -5,7 +5,8 @@ import bcrypt from "bcrypt";
 export enum UserRole {
   DOCTOR = "doctor",
   RECEPTIONIST = "receptionist",
-  ADMIN = "admin"
+  ADMIN = "admin",
+  SUPERADMIN="superadmin"
 }
 
 

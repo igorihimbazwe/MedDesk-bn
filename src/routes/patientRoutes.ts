@@ -19,7 +19,6 @@ router.post(
     const {
       name,
       phoneNumber,
-      reason,
       gender,
       fatherName,
       motherName,
@@ -51,7 +50,7 @@ router.post(
         name,
         phoneNumber,
         dateAssigned: new Date(),
-        reason,
+        reason: "Orthodontic placement",
         gender,
         fatherName,
         motherName,

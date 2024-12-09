@@ -45,10 +45,12 @@ export const protect = (req: Request, res: Response, next: NextFunction): void =
   }
 };
 
-export const checkRole = (role: string) => {
+export const checkRole = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (req.user?.role !== role) {
-      res.status(403).json({ message: "Forbidden. Insufficient permissions." });
+    const userRole = req.user?.role; // Safely access role
+
+    if (!userRole || !roles.includes(userRole)) {
+      res.status(403).json({ message: "Forbidden. Not authorized" });
       return;
     }
     next();
