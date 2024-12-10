@@ -10,7 +10,7 @@ const router = express.Router();
 router.get(
   '/dashboard-stats-admin',
   protect,
-  checkRole('admin','super-admin'),
+  checkRole('admin','superadmin'),
   async (req, res): Promise<void> => {
     try {
 
@@ -59,7 +59,7 @@ router.get(
 router.get(
   '/filter-by-appointment-admin',
   protect,
-  checkRole('admin','super-admin'),
+  checkRole('admin','superadmin'),
   async (req, res): Promise<void> => {
     const { startDate, endDate, doctorId, status } = req.query;
 
@@ -98,7 +98,7 @@ router.get(
   },
 );
 
-router.get('/doctors-with-stats', protect,checkRole('admin','super-admin'), async (req, res): Promise<void> => {
+router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async (req, res): Promise<void> => {
   const { startDate, endDate } = req.query;
 
   try {
@@ -165,7 +165,7 @@ router.get('/doctors-with-stats', protect,checkRole('admin','super-admin'), asyn
 router.patch(
   '/assign-doctor-to-patient/:patientId',
   protect,
-  checkRole('admin','super-admin'),
+  checkRole('admin','superadmin'),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { patientId } = req.params;
@@ -218,9 +218,9 @@ router.patch(
 );
 
 router.get(
-  '/super-admin/admins',
+  '/superadmin/admins',
   protect,
-  checkRole('super-admin'),
+  checkRole('superadmin'),
   async (req, res): Promise<void> => {
     try {
       const admins = await User.find({ role: 'admin' });
@@ -239,9 +239,9 @@ router.get(
 
 // Toggle admin status (active/inactive)
 router.patch(
-  '/super-admin/toggle-admin-status/:adminId',
+  '/superadmin/toggle-admin-status/:adminId',
   protect,
-  checkRole('super-admin'),
+  checkRole('superadmin'),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { adminId } = req.params;
@@ -272,7 +272,7 @@ router.patch(
 router.post(
   "/add-patient",
   protect,
-  checkRole('admin','super-admin'),
+  checkRole('admin','superadmin'),
   async (req, res): Promise<void> => {
     const {
       name,
