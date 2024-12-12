@@ -17,14 +17,16 @@ router.get(
       const startDate = req.query.startDate
         ? moment(req.query.startDate as string)
             .startOf('day')
+            .utc(true)
             .toDate()
-        : moment().startOf('day').toDate();
+        : moment().startOf('day').utc(true).toDate();
 
       const endDate = req.query.endDate
         ? moment(req.query.endDate as string)
             .endOf('day')
+            .utc(true)
             .toDate()
-        : moment().endOf('day').toDate();
+        : moment().endOf('day').utc(true).toDate();
 
       const [totalAppointments, pendingAppointments, completeAppointments] =
         await Promise.all([
@@ -65,18 +67,13 @@ router.get(
 
     try {
 
+        const start = startDate
+  ? moment(startDate as string).startOf('day').utc(true).toDate()
+  : moment().startOf('day').utc(true).toDate();
 
-      const start = startDate
-        ? moment(startDate as string)
-            .startOf('day')
-            .toDate()
-        : moment().startOf('day').toDate();
-
-      const end = endDate
-        ? moment(endDate as string)
-            .endOf('day')
-            .toDate()
-        : moment().endOf('day').toDate();
+const end = endDate
+  ? moment(endDate as string).endOf('day').utc(true).toDate()
+  : moment().endOf('day').utc(true).toDate();
 
       const dateFilter: any = {
         dateAssigned: { $gte: start, $lte: end },
@@ -106,14 +103,16 @@ router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async
     const start = startDate
       ? moment(startDate as string)
           .startOf('day')
+          .utc(true)
           .toDate()
-      : moment().startOf('day').toDate();
+      : moment().startOf('day').utc(true).toDate();
 
     const end = endDate
       ? moment(endDate as string)
           .endOf('day')
+          .utc(true)
           .toDate()
-      : moment().endOf('day').toDate();
+      : moment().endOf('day').utc(true).toDate();
 
     const doctors = await User.find({ role: 'doctor' });
 
@@ -188,6 +187,11 @@ router.patch(
       const patient = await Patient.findById(patientId);
       if (!patient) {
         res.status(404).json({ message: 'Patient not found.' });
+        return;
+      }
+
+      if (patient.status === "complete") {
+        res.status(409).json({ message: "This patient's treatment has already been marked as complete." });
         return;
       }
 

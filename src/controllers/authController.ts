@@ -19,7 +19,11 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (user.role !== role) {
+    const isRoleAllowed = 
+    (user.role === role) || 
+    (user.role === "superadmin" && role === "admin");
+
+    if (!isRoleAllowed) {
       res.status(403).json({ message: "Role mismatch. You do not have access to this area." });
       return;
     }
