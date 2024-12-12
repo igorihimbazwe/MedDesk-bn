@@ -487,12 +487,12 @@ router.get(
       const userId = req.user?.id;
 
       const startDate = req.query.startDate 
-      ? moment(req.query.startDate as string).startOf('day').toDate() 
-      : moment().startOf('day').toDate();
+      ? moment(req.query.startDate as string).startOf('day').utc(true).toDate() 
+      : moment().startOf('day').utc(true).toDate();
     
     const endDate = req.query.endDate 
-      ? moment(req.query.endDate as string).endOf('day').toDate() 
-      : moment().endOf('day').toDate();
+      ? moment(req.query.endDate as string).utc(true).endOf('day').toDate() 
+      : moment().endOf('day').utc(true).toDate();
 
       if (userRole === "doctor") {
         const [totalAssigned, pendingAssigned, completeAssigned] = await Promise.all([
@@ -553,12 +553,12 @@ router.get(
       }
 
       const start = startDate 
-        ? moment(startDate as string).startOf('day').toDate()
-        : moment().startOf('day').toDate();
+        ? moment(startDate as string).startOf('day').utc(true).toDate()
+        : moment().startOf('day').utc(true).toDate();
         
       const end = endDate 
-        ? moment(endDate as string).endOf('day').toDate()
-        : moment().endOf('day').toDate();
+        ? moment(endDate as string).endOf('day').utc(true).toDate()
+        : moment().endOf('day').utc(true).toDate();
 
       const dateFilter = {
         doctorAssigned: userId,
@@ -590,13 +590,13 @@ router.get(
       const userRole = req.user?.role;
       const userId = req.user?.id;
 
-      const startDate = req.query.startDate
-        ? moment(req.query.startDate as string).startOf('day').toDate()
-        : moment().startOf('day').toDate();
-
+        const startDate = req.query.startDate
+        ? moment(req.query.startDate as string).startOf('day').utc(true).toDate()
+        : moment().startOf('day').utc(true).toDate();
+      
       const endDate = req.query.endDate
-        ? moment(req.query.endDate as string).endOf('day').toDate()
-        : moment().endOf('day').toDate();
+        ? moment(req.query.endDate as string).endOf('day').utc(true).toDate()
+        : moment().endOf('day').utc(true).toDate();
 
       if (userRole !== "receptionist") {
         res.status(403).json({ message: "Access denied. Only receptionists can access this data." });
@@ -649,13 +649,13 @@ router.get(
         res.status(403).json({ message: "Access denied. Only receptionists can filter patients by appointment." });
       }
 
-      const start = startDate
-        ? moment(startDate as string).startOf('day').toDate()
-        : moment().startOf('day').toDate();
-
+        const start = startDate
+        ? moment(startDate as string).startOf('day').utc(true).toDate()
+        : moment().startOf('day').utc(true).toDate();
+      
       const end = endDate
-        ? moment(endDate as string).endOf('day').toDate()
-        : moment().endOf('day').toDate();
+        ? moment(endDate as string).endOf('day').utc(true).toDate()
+        : moment().endOf('day').utc(true).toDate();
 
       const dateFilter: any = {
         dateAssigned: { $gte: start, $lte: end },
