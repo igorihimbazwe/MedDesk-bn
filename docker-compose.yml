@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  ur-hg-medidesk-api:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    image: ghcr.io/programmerdatch/ur-hg-medidesk-api:latest
+    env_file:
+      - .env
+    ports:
+      - "7002:3000"
