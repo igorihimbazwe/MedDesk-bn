@@ -90,17 +90,21 @@ router.put(
       }
 
       const parsedDate = parse(dateOfAppointment, "yyyy-MM-dd", new Date());
-      if (!isValid(parsedDate)) {
-        res
-          .status(400)
-          .json({ message: "Invalid date format. Use YYYY-MM-DD." });
+
+      const utcDate = new Date(Date.UTC(
+        parsedDate.getFullYear(),
+        parsedDate.getMonth(),
+        parsedDate.getDate()
+      ));
+      
+      if (!isValid(utcDate)) {
+        res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
         return;
       }
 
-      // Update the patient's appointment date
       const updatedPatient = await Patient.findByIdAndUpdate(
         patientId,
-        { dateOfAppointment: parsedDate },
+        { dateOfAppointment: utcDate },
         { new: true }
       );
 
@@ -661,6 +665,8 @@ router.get(
         dateAssigned: { $gte: start, $lte: end },
         receptionist: userId,
       };
+
+      console.log(dateFilter);
 
       const patients = await Patient.find(dateFilter)
         .populate("doctorAssigned", "name")
