@@ -666,8 +666,6 @@ router.get(
         receptionist: userId,
       };
 
-      console.log(dateFilter);
-
       const patients = await Patient.find(dateFilter)
         .populate("doctorAssigned", "name")
         .populate("receptionist", "name");

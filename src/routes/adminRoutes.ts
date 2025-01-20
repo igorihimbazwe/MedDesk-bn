@@ -3,7 +3,7 @@ import { protect, checkRole } from '../middleware/authMiddleware';
 import Patient from '../models/patient';
 import User,{UserRole} from '../models/user';
 import moment from 'moment';
-import mongoose from 'mongoose';
+import exceljs from 'exceljs';
 
 const router = express.Router();
 
@@ -31,15 +31,15 @@ router.get(
       const [totalAppointments, pendingAppointments, completeAppointments] =
         await Promise.all([
           Patient.countDocuments({
-            dateAssigned: { $gte: startDate, $lte: endDate },
+            dateOfAppointment: { $gte: startDate, $lte: endDate },
           }),
           Patient.countDocuments({
             status: 'pending',
-            dateAssigned: { $gte: startDate, $lte: endDate },
+            dateOfAppointment: { $gte: startDate, $lte: endDate },
           }),
           Patient.countDocuments({
             status: 'complete',
-            dateAssigned: { $gte: startDate, $lte: endDate },
+            dateOfAppointment: { $gte: startDate, $lte: endDate },
           }),
         ]);
 
@@ -76,7 +76,7 @@ const end = endDate
   : moment().endOf('day').utc(true).toDate();
 
       const dateFilter: any = {
-        dateAssigned: { $gte: start, $lte: end },
+        dateOfAppointment: { $gte: start, $lte: end },
       };
 
       const patients = await Patient.find(dateFilter)
@@ -336,5 +336,94 @@ router.post(
   }
 );
 
+router.get(
+  '/download-patient-report',
+  protect,
+  checkRole('admin', 'superadmin'),
+  async (req, res): Promise<void> => {
+    const { startDate, endDate } = req.query;
+
+    try {
+      const start = startDate
+        ? moment(startDate as string).startOf('day').utc(true).toDate()
+        : moment().startOf('day').utc(true).toDate();
+
+      const end = endDate
+        ? moment(endDate as string).endOf('day').utc(true).toDate()
+        : moment().endOf('day').utc(true).toDate();
+
+      const dateFilter: any = {
+        dateOfAppointment: { $gte: start, $lte: end },
+      };
+
+      const patients = await Patient.find(dateFilter)
+        .populate<{ doctorAssigned: { name: string } }>('doctorAssigned', 'name')
+        .populate<{ receptionist: { name: string } }>('receptionist', 'name');
+
+        const workbook = new exceljs.Workbook();
+        const worksheet = workbook.addWorksheet('Patients Report');
+  
+        const startDateFormatted = moment(start).format('YYYY-MM-DD');
+        const endDateFormatted = moment.utc(end).format('YYYY-MM-DD');
+
+        const reportTitle = (startDateFormatted === "2004-01-01" && endDateFormatted === "2060-12-31")
+          ? "All time appointments records"
+          : `Appointment of patients from ${startDateFormatted} to ${endDateFormatted}`;
+  
+        worksheet.mergeCells('A1:G1');
+        worksheet.getCell('A1').value = reportTitle;
+        worksheet.getCell('A1').font = { bold: true, size: 16 };
+        worksheet.getCell('A1').alignment = { horizontal: 'center' };
+        
+        worksheet.addRow([]);
+  
+        worksheet.addRow([
+          "Patient's Name",
+          'Phone Number',
+          'Doctor Assigned',
+          'Date of Appointment',
+          'Gender',
+          'Insurance',
+          'Receptionist',
+        ]).font = { bold: true };
+  
+        worksheet.getColumn(1).width = 25;
+        worksheet.getColumn(2).width = 15;
+        worksheet.getColumn(3).width = 25;
+        worksheet.getColumn(4).width = 20;
+        worksheet.getColumn(5).width = 10;
+        worksheet.getColumn(6).width = 20;
+        worksheet.getColumn(7).width = 25;
+  
+        patients.forEach((patient) => {
+          const rowData = [
+            patient.name || 'N/A',
+            patient.phoneNumber || 'N/A',
+            patient.doctorAssigned?.name || 'N/A',
+            moment(patient.dateOfAppointment).format('MM-DD-YYYY') || 'N/A',
+            patient.gender === "male" ? "Male" : "Female",
+            patient.insurance || 'N/A',
+            patient.receptionist?.name || 'N/A',
+          ];
+  
+          worksheet.addRow(rowData);
+        });
+  
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+          'Content-Disposition',
+          'attachment; filename="Patients_Report.xlsx"'
+        );
+
+        await workbook.xlsx.write(res);
+        res.end();
+      } catch (error: any) {
+        res.status(500).json({ message: 'Error downloading patient report', error: error.message });
+      }
+    }
+  );
 
 export default router;
