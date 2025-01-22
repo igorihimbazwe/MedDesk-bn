@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "dev": "nodemon src/app.ts",
-    "seed": "ts-node src/seeds/seeder.ts"
+    "seed": "ts-node src/seeds/seeder.ts",
+    "deploy": "docker build . -t ghcr.io/programmerdatch/ur-hg-medidesk-api:latest && docker push ghcr.io/programmerdatch/ur-hg-medidesk-api:latest"
   },
   "keywords": [],
   "author": "Igor IHIMBAZWE",
