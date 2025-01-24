@@ -1,15 +1,26 @@
 import express from "express";
 import { protect, checkRole } from "../middleware/authMiddleware";
 import Patient from "../models/patient";
-import User from "../models/user";
+import User, { UserRole } from "../models/user";
 import moment from 'moment';
 import { startOfDay, endOfDay } from "date-fns";
 import { assignDoctor } from "../utils/rotation";
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
 import { isValid, parse } from "date-fns";
 
+// Day mapping to convert string days to numeric values (0 = Sunday, 1 = Monday, etc.)
+const dayMapping: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
 
 router.post(
   "/add",
@@ -677,6 +688,48 @@ router.get(
 
     } catch (error: any) {
       res.status(500).json({ message: "Error filtering patients", error: error.message });
+    }
+  }
+);
+
+//Getting doctors and the days they are available on
+router.get(
+  "/doctor-schedules",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      const doctors = await User.find<{ _id: mongoose.Types.ObjectId; doctorSchedule: string[] }>(
+        { role: UserRole.DOCTOR, status: "active" }
+      ).select("_id doctorSchedule");
+  
+      if (!doctors || doctors.length === 0) {
+        res.status(404).json({ message: "No active doctors found with schedules." });
+        return;
+      }
+  
+      // Process doctors to map schedules into day numbers
+      const doctorSchedule: Record<string, number[]> = {};
+  
+      doctors.forEach((doctor) => {
+        const doctorId = doctor._id.toString();
+      
+        if (doctor.doctorSchedule && doctor.doctorSchedule.length > 0) {
+          const schedule = doctor.doctorSchedule.map((day: string) => {
+            const dayNumber = dayMapping[day.toLowerCase()];
+            if (dayNumber === undefined) {
+              throw new Error(`Invalid day in schedule: ${day}`);
+            }
+            return dayNumber;
+          });
+      
+          doctorSchedule[doctorId] = schedule;
+        }
+      });
+  
+      res.status(200).json(doctorSchedule);
+      
+    } catch (error: any) {
+      res.status(500).json({ message: "Error getting doctors patients", error: error.message });
     }
   }
 );

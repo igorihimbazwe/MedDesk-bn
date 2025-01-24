@@ -4,8 +4,20 @@ import Patient from '../models/patient';
 import User,{UserRole} from '../models/user';
 import moment from 'moment';
 import exceljs from 'exceljs';
+import mongoose from 'mongoose';
 
 const router = express.Router();
+
+// Day mapping to convert string days to numeric values (0 = Sunday, 1 = Monday, etc.)
+const dayMapping: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
 
 router.get(
   '/dashboard-stats-admin',
@@ -425,5 +437,79 @@ router.get(
       }
     }
   );
+
+//Adding new doctor
+router.post(
+  "/add-doctor",
+  protect,
+  checkRole('admin', 'superadmin'),
+  async (req, res): Promise<void> => {
+  try {
+    const { name, email, phoneNumber, doctorSchedule } = req.body;
+
+    if (!name || !email || !phoneNumber) {
+      res.status(400).json({ message: "Name, email, and phone number are required" });
+      return;
+    }
+
+    const existingDoctor = await User.findOne({ email });
+    if (existingDoctor) {
+      res.status(400).json({ message: "Doctor with this email already exists" });
+      return;
+    }
+
+    const defaultPassword = process.env.DEFAULT_PASSWORD;
+    if (!defaultPassword) {
+      res.status(500).json({ message: "Default password is not set in environment variables" });
+      return;
+    }
+
+    const newDoctor = new User({
+      name,
+      email,
+      password: defaultPassword,
+      phoneNumber,
+      role: UserRole.DOCTOR,
+      status: "active",
+      doctorSchedule: doctorSchedule || [],
+    });
+
+    await newDoctor.save();
+
+    res.status(201).json({ message: "Doctor added successfully", doctor: newDoctor });
+  } catch (error) {
+    console.error("Error adding doctor:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//Getting doctors and their names
+router.get(
+  "/doctor-schedules",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      const doctors = await User.find<{ _id: mongoose.Types.ObjectId; name: string }>(
+        { role: UserRole.DOCTOR, status: "active" }
+      ).select("_id name");
+
+      if (!doctors || doctors.length === 0) {
+        res.status(404).json({ message: "No active doctors found." });
+        return;
+      }
+
+      // Map the doctors to return only their IDs and names
+      const doctorList = doctors.map((doctor) => ({
+        id: doctor._id.toString(),
+        name: doctor.name,
+      }));
+      
+      res.status(200).json(doctorList);
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error retrieving doctors", error: error.message });
+    }
+  }
+);
 
 export default router;
