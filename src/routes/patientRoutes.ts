@@ -38,20 +38,20 @@ router.post(
     } = req.body;
 
     try {
-      const existingPatient = await Patient.findOne({
-        phoneNumber,
-        dateAssigned: {
-          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          $lte: new Date(new Date().setHours(23, 59, 59, 999)),
-        },
-      });
+      // const existingPatient = await Patient.findOne({
+      //   phoneNumber,
+      //   dateAssigned: {
+      //     $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+      //     $lte: new Date(new Date().setHours(23, 59, 59, 999)),
+      //   },
+      // });
 
-      if (existingPatient) {
-        res
-          .status(400)
-          .json({ message: "This patient already has a doctor assigned for today." });
-          return;
-      }
+      // if (existingPatient) {
+      //   res
+      //     .status(400)
+      //     .json({ message: "This patient already has a doctor assigned for today." });
+      //     return;
+      // }
 
       const assignedDoctor = await assignDoctor();
 

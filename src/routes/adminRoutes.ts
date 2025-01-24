@@ -151,6 +151,8 @@ router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async
         return {
           doctorId: doctor._id,
           name: doctor.name,
+          status: doctor.status,
+          email: doctor.email,
           phoneNumber: doctor.phoneNumber,
           totalPatients,
           pendingPatients,
@@ -511,5 +513,30 @@ router.get(
     }
   }
 );
+
+router.put("/:doctorId/status", async (req, res): Promise<void> => {
+  try {
+    const { doctorId } = req.params;
+
+    // Find doctor by ID
+    const doctor = await User.findById(doctorId);
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor not found" });
+      return;
+    }
+
+    // Toggle status
+    doctor.status = doctor.status === "active" ? "not available" : "active";
+    await doctor.save();
+
+    res.status(200).json({
+      message: `Doctor status updated to ${doctor.status}`,
+      status: doctor.status,
+    });
+  } catch (error) {
+    console.error("Error updating doctor status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 export default router;
