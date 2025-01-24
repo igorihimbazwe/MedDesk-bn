@@ -17,6 +17,7 @@ export interface IUser extends Document {
   phoneNumber: string;
   role: UserRole;
   status: "active" | "not available"; 
+  doctorSchedule: string[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -36,6 +37,7 @@ const UserSchema: Schema<IUser> = new Schema(
       enum: ["active", "not available"], 
       default: "active", 
     },
+    doctorSchedule: { type: [String], default: [] },
   },
   {
     timestamps: true,
