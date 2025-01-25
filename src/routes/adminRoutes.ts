@@ -236,51 +236,54 @@ router.patch(
 );
 
 router.get(
-  '/superadmin/admins',
+  '/superadmin/staff',
   protect,
   checkRole('superadmin'),
   async (req, res): Promise<void> => {
     try {
-      const admins = await User.find({ role: 'admin' });
+      const staff = await User.find({
+        role: { $in: [UserRole.ADMIN, UserRole.RECEPTIONIST] },
+      });
+
       res.status(200).json({
-        message: 'Admins fetched successfully',
-        admins,
+        message: 'Admins and receptionists fetched successfully',
+        staff,
       });
     } catch (error: any) {
       res.status(500).json({
-        message: 'Error fetching admins',
+        message: 'Error fetching admins and receptionists',
         error: error.message,
       });
     }
   },
 );
 
-// Toggle admin status (active/inactive)
+// Toggle staff member status (active/inactive)
 router.patch(
-  '/superadmin/toggle-admin-status/:adminId',
+  '/superadmin/toggle-staff-status/:staffId',
   protect,
   checkRole('superadmin'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { adminId } = req.params;
+      const { staffId } = req.params;
 
-      const admin = await User.findById(adminId);
-      if (!admin || admin.role !== 'admin') {
-        res.status(404).json({ message: 'Admin not found or invalid ID.' });
+      const staffMember = await User.findById(staffId);
+      if (!staffMember || (staffMember.role !== 'admin' && staffMember.role !== 'receptionist')) {
+        res.status(404).json({ message: 'Staff member not found or invalid ID.' });
         return;
       }
 
-      // Toggle status
-      admin.status = admin.status === 'active' ? 'not available' : 'active';
-      await admin.save();
+      // Toggle the status
+      staffMember.status = staffMember.status === 'active' ? 'not available' : 'active';
+      await staffMember.save();
 
       res.status(200).json({
-        message: `Admin status toggled to ${admin.status}.`,
-        admin,
+        message: `Staff member status toggled to ${staffMember.status}.`,
+        staffMember,
       });
     } catch (error: any) {
       res.status(500).json({
-        message: 'Error toggling admin status',
+        message: 'Error toggling staff member status',
         error: error.message,
       });
     }
@@ -485,6 +488,51 @@ router.post(
   }
 });
 
+// Adding new receptionist
+router.post(
+  "/add-receptionist",
+  protect,
+  checkRole('admin', 'superadmin'),
+  async (req, res): Promise<void> => {
+    try {
+      const { name, email, phoneNumber } = req.body;
+
+      if (!name || !email || !phoneNumber) {
+        res.status(400).json({ message: "Name, email, and phone number are required" });
+        return;
+      }
+
+      const existingReceptionist = await User.findOne({ email });
+      if (existingReceptionist) {
+        res.status(400).json({ message: "Receptionist with this email already exists" });
+        return;
+      }
+
+      const defaultPassword = process.env.DEFAULT_PASSWORD;
+      if (!defaultPassword) {
+        res.status(500).json({ message: "Default password is not set in environment variables" });
+        return;
+      }
+
+      const newReceptionist = new User({
+        name,
+        email,
+        password: defaultPassword,
+        phoneNumber,
+        role: UserRole.RECEPTIONIST,
+        status: "active",
+      });
+
+      await newReceptionist.save();
+
+      res.status(201).json({ message: "Receptionist added successfully", receptionist: newReceptionist });
+    } catch (error) {
+      console.error("Error adding receptionist:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
 //Getting doctors and their names
 router.get(
   "/doctor-schedules",
@@ -514,7 +562,11 @@ router.get(
   }
 );
 
-router.put("/:doctorId/status", async (req, res): Promise<void> => {
+//Toggling doctor's status
+router.put("/:doctorId/status",
+  protect,
+  checkRole('superadmin'),
+  async (req, res): Promise<void> => {
   try {
     const { doctorId } = req.params;
 
