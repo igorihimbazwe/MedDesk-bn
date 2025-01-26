@@ -73,7 +73,7 @@ export async function getDoctorsFromDB() {
         doctorFrequency[doctor.id.toString()]++;
       }
     }
-
+    getCurrentDoctorIndex()
     return sortedDoctors;
   } catch (error) {
     console.error("Error in getDoctorsFromDB:", error);
@@ -106,8 +106,9 @@ export const assignDoctor = async (): Promise<mongoose.Types.ObjectId> => {
       throw new Error("No doctors available to assign.");
     }
 
-    const assignedDoctor = doctors[currentIndex];
-    const nextIndex = (currentIndex + 1) % doctors.length;
+    const adjustedIndex = currentIndex >= doctors.length ? 0 : currentIndex;
+    const assignedDoctor = doctors[adjustedIndex];
+    const nextIndex = adjustedIndex + 1 >= doctors.length ? 0 : adjustedIndex + 1;
 
     await updateCurrentDoctorIndex(nextIndex);
     return assignedDoctor;

@@ -550,7 +550,7 @@ router.get(
 
       // Map the doctors to return only their IDs and names
       const doctorList = doctors.map((doctor) => ({
-        id: doctor._id.toString(),
+        _id: doctor._id.toString(),
         name: doctor.name,
       }));
       
