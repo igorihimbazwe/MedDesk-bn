@@ -4,8 +4,20 @@ import Patient from '../models/patient';
 import User,{UserRole} from '../models/user';
 import moment from 'moment';
 import exceljs from 'exceljs';
+import mongoose from 'mongoose';
 
 const router = express.Router();
+
+// Day mapping to convert string days to numeric values (0 = Sunday, 1 = Monday, etc.)
+const dayMapping: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
 
 router.get(
   '/dashboard-stats-admin',
@@ -139,6 +151,8 @@ router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async
         return {
           doctorId: doctor._id,
           name: doctor.name,
+          status: doctor.status,
+          email: doctor.email,
           phoneNumber: doctor.phoneNumber,
           totalPatients,
           pendingPatients,
@@ -222,51 +236,54 @@ router.patch(
 );
 
 router.get(
-  '/superadmin/admins',
+  '/superadmin/staff',
   protect,
   checkRole('superadmin'),
   async (req, res): Promise<void> => {
     try {
-      const admins = await User.find({ role: 'admin' });
+      const staff = await User.find({
+        role: { $in: [UserRole.ADMIN, UserRole.RECEPTIONIST] },
+      });
+
       res.status(200).json({
-        message: 'Admins fetched successfully',
-        admins,
+        message: 'Admins and receptionists fetched successfully',
+        staff,
       });
     } catch (error: any) {
       res.status(500).json({
-        message: 'Error fetching admins',
+        message: 'Error fetching admins and receptionists',
         error: error.message,
       });
     }
   },
 );
 
-// Toggle admin status (active/inactive)
+// Toggle staff member status (active/inactive)
 router.patch(
-  '/superadmin/toggle-admin-status/:adminId',
+  '/superadmin/toggle-staff-status/:staffId',
   protect,
   checkRole('superadmin'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { adminId } = req.params;
+      const { staffId } = req.params;
 
-      const admin = await User.findById(adminId);
-      if (!admin || admin.role !== 'admin') {
-        res.status(404).json({ message: 'Admin not found or invalid ID.' });
+      const staffMember = await User.findById(staffId);
+      if (!staffMember || (staffMember.role !== 'admin' && staffMember.role !== 'receptionist')) {
+        res.status(404).json({ message: 'Staff member not found or invalid ID.' });
         return;
       }
 
-      // Toggle status
-      admin.status = admin.status === 'active' ? 'not available' : 'active';
-      await admin.save();
+      // Toggle the status
+      staffMember.status = staffMember.status === 'active' ? 'not available' : 'active';
+      await staffMember.save();
 
       res.status(200).json({
-        message: `Admin status toggled to ${admin.status}.`,
-        admin,
+        message: `Staff member status toggled to ${staffMember.status}.`,
+        staffMember,
       });
     } catch (error: any) {
       res.status(500).json({
-        message: 'Error toggling admin status',
+        message: 'Error toggling staff member status',
         error: error.message,
       });
     }
@@ -425,5 +442,153 @@ router.get(
       }
     }
   );
+
+//Adding new doctor
+router.post(
+  "/add-doctor",
+  protect,
+  checkRole('admin', 'superadmin'),
+  async (req, res): Promise<void> => {
+  try {
+    const { name, email, phoneNumber, doctorSchedule } = req.body;
+
+    if (!name || !email || !phoneNumber) {
+      res.status(400).json({ message: "Name, email, and phone number are required" });
+      return;
+    }
+
+    const existingDoctor = await User.findOne({ email });
+    if (existingDoctor) {
+      res.status(400).json({ message: "Doctor with this email already exists" });
+      return;
+    }
+
+    const defaultPassword = process.env.DEFAULT_PASSWORD;
+    if (!defaultPassword) {
+      res.status(500).json({ message: "Default password is not set in environment variables" });
+      return;
+    }
+
+    const newDoctor = new User({
+      name,
+      email,
+      password: defaultPassword,
+      phoneNumber,
+      role: UserRole.DOCTOR,
+      status: "active",
+      doctorSchedule: doctorSchedule || [],
+    });
+
+    await newDoctor.save();
+
+    res.status(201).json({ message: "Doctor added successfully", doctor: newDoctor });
+  } catch (error) {
+    console.error("Error adding doctor:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Adding new receptionist
+router.post(
+  "/add-receptionist",
+  protect,
+  checkRole('admin', 'superadmin'),
+  async (req, res): Promise<void> => {
+    try {
+      const { name, email, phoneNumber } = req.body;
+
+      if (!name || !email || !phoneNumber) {
+        res.status(400).json({ message: "Name, email, and phone number are required" });
+        return;
+      }
+
+      const existingReceptionist = await User.findOne({ email });
+      if (existingReceptionist) {
+        res.status(400).json({ message: "Receptionist with this email already exists" });
+        return;
+      }
+
+      const defaultPassword = process.env.DEFAULT_PASSWORD;
+      if (!defaultPassword) {
+        res.status(500).json({ message: "Default password is not set in environment variables" });
+        return;
+      }
+
+      const newReceptionist = new User({
+        name,
+        email,
+        password: defaultPassword,
+        phoneNumber,
+        role: UserRole.RECEPTIONIST,
+        status: "active",
+      });
+
+      await newReceptionist.save();
+
+      res.status(201).json({ message: "Receptionist added successfully", receptionist: newReceptionist });
+    } catch (error) {
+      console.error("Error adding receptionist:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
+//Getting doctors and their names
+router.get(
+  "/doctor-schedules",
+  protect,
+  async (req, res): Promise<void> => {
+    try {
+      const doctors = await User.find<{ _id: mongoose.Types.ObjectId; name: string }>(
+        { role: UserRole.DOCTOR, status: "active" }
+      ).select("_id name");
+
+      if (!doctors || doctors.length === 0) {
+        res.status(404).json({ message: "No active doctors found." });
+        return;
+      }
+
+      // Map the doctors to return only their IDs and names
+      const doctorList = doctors.map((doctor) => ({
+        _id: doctor._id.toString(),
+        name: doctor.name,
+      }));
+      
+      res.status(200).json(doctorList);
+
+    } catch (error: any) {
+      res.status(500).json({ message: "Error retrieving doctors", error: error.message });
+    }
+  }
+);
+
+//Toggling doctor's status
+router.put("/:doctorId/status",
+  protect,
+  checkRole('superadmin'),
+  async (req, res): Promise<void> => {
+  try {
+    const { doctorId } = req.params;
+
+    // Find doctor by ID
+    const doctor = await User.findById(doctorId);
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor not found" });
+      return;
+    }
+
+    // Toggle status
+    doctor.status = doctor.status === "active" ? "not available" : "active";
+    await doctor.save();
+
+    res.status(200).json({
+      message: `Doctor status updated to ${doctor.status}`,
+      status: doctor.status,
+    });
+  } catch (error) {
+    console.error("Error updating doctor status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 export default router;

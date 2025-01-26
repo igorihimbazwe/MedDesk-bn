@@ -48,11 +48,27 @@ export const protect = (req: Request, res: Response, next: NextFunction): void =
 export const checkRole = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const userRole = req.user?.role; // Safely access role
-
-    if (!userRole || !roles.includes(userRole)) {
-      res.status(403).json({ message: "Forbidden. Not authorized" });
+    
+    // Check if the user has a role
+    if (!userRole) {
+      res.status(403).json({ message: "Access denied. No role assigned. Please contact your administrator." });
       return;
     }
+
+    // Check if the user is trying to access a superadmin-only route
+    const isSuperadminOnlyRoute = roles.length === 1 && roles[0] === "superadmin";
+
+    if (isSuperadminOnlyRoute && userRole !== "superadmin") {
+      res.status(403).json({ message: "Access denied. Only superadmins can perform this action." });
+      return;
+    }
+
+    // Check if the user has one of the required roles
+    if (!roles.includes(userRole)) {
+      res.status(403).json({ message: "Access denied. You do not have the necessary permissions to perform this action." });
+      return;
+    }
+
     next();
   };
 };
