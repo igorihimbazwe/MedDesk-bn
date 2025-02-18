@@ -591,4 +591,29 @@ router.put("/:doctorId/status",
   }
 });
 
+//deleting an appointment
+router.delete(
+  "/patient/:id",
+  protect,
+  checkRole('admin', 'superadmin'),
+  async (req, res): Promise<void> => {
+    const { id } = req.params;
+
+    try {
+      const patient = await Patient.findById(id);
+      
+      if (!patient) {
+        res.status(404).json({ message: "Patient not found." });
+        return;
+      }
+
+      await Patient.findByIdAndDelete(id);
+
+      res.status(200).json({ patient, message: "Patient deleted successfully." });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error deleting patient", error: error.message });
+    }
+  }
+);
+
 export default router;

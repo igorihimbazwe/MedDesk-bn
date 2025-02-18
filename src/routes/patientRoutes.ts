@@ -237,9 +237,6 @@ router.post(
   }
 );
 
-
-
-
 router.get(
   "/assigned-patients",
   protect,
@@ -648,7 +645,6 @@ router.get(
     }
   }
 );
-
 
 router.get(
   "/filter-by-appointment-receptionist",
