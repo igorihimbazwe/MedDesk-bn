@@ -619,17 +619,17 @@ router.get(
       const [totalAssigned, pendingAssigned, completeAssigned] = await Promise.all([
         Patient.countDocuments({
           dateAssigned: { $gte: startDate, $lte: endDate },
-          ...assignedReceptionistFilter
+          // ...assignedReceptionistFilter
         }),
         Patient.countDocuments({
           status: "pending",
           dateAssigned: { $gte: startDate, $lte: endDate },
-          ...assignedReceptionistFilter
+          // ...assignedReceptionistFilter
         }),
         Patient.countDocuments({
           status: "complete",
           dateAssigned: { $gte: startDate, $lte: endDate },
-          ...assignedReceptionistFilter
+          // ...assignedReceptionistFilter
         }),
       ]);
 
@@ -670,7 +670,7 @@ router.get(
 
       const dateFilter: any = {
         dateAssigned: { $gte: start, $lte: end },
-        receptionist: userId,
+        // receptionist: userId,
       };
 
       const patients = await Patient.find(dateFilter)
