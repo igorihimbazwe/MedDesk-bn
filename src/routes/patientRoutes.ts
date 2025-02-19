@@ -237,9 +237,6 @@ router.post(
   }
 );
 
-
-
-
 router.get(
   "/assigned-patients",
   protect,
@@ -619,20 +616,22 @@ router.get(
 
       const assignedReceptionistFilter = { receptionist: userId };
 
+      const dateType = req.query.dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+
       const [totalAssigned, pendingAssigned, completeAssigned] = await Promise.all([
         Patient.countDocuments({
-          dateAssigned: { $gte: startDate, $lte: endDate },
-          ...assignedReceptionistFilter
+          [dateType]: { $gte: startDate, $lte: endDate },
+          // ...assignedReceptionistFilter
         }),
         Patient.countDocuments({
           status: "pending",
-          dateAssigned: { $gte: startDate, $lte: endDate },
-          ...assignedReceptionistFilter
+          [dateType]: { $gte: startDate, $lte: endDate },
+          // ...assignedReceptionistFilter
         }),
         Patient.countDocuments({
           status: "complete",
-          dateAssigned: { $gte: startDate, $lte: endDate },
-          ...assignedReceptionistFilter
+          [dateType]: { $gte: startDate, $lte: endDate },
+          // ...assignedReceptionistFilter
         }),
       ]);
 
@@ -649,12 +648,11 @@ router.get(
   }
 );
 
-
 router.get(
   "/filter-by-appointment-receptionist",
   protect,
   async (req, res): Promise<void> => {
-    const { startDate, endDate, doctorId, status } = req.query;
+    const { startDate, endDate, doctorId, status, dateType } = req.query;
 
     try {
       const userRole = req.user?.role;
@@ -672,9 +670,11 @@ router.get(
         ? moment(endDate as string).endOf('day').utc(true).toDate()
         : moment().endOf('day').utc(true).toDate();
 
+      const dateField = dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+
       const dateFilter: any = {
-        dateAssigned: { $gte: start, $lte: end },
-        receptionist: userId,
+        [dateField]: { $gte: start, $lte: end },
+        // receptionist: userId,
       };
 
       const patients = await Patient.find(dateFilter)

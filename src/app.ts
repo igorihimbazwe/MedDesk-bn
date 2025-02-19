@@ -17,7 +17,7 @@ const app: Application = express();
 connectDB();
 
 const corsOptions: cors.CorsOptions = {
-  methods: ['GET', 'POST', 'PUT', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
