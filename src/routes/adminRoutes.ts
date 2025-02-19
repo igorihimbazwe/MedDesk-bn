@@ -40,7 +40,7 @@ router.get(
             .toDate()
         : moment().endOf('day').utc(true).toDate();
 
-      const dateType = req.query.dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+      const dateType = req.query.dateType === "dateAssigned" ? "dateAssigned" : "dateOfAppointment";
 
       const [totalAppointments, pendingAppointments, completeAppointments] =
         await Promise.all([
@@ -89,7 +89,7 @@ router.get(
         ? moment(endDate as string).endOf('day').utc(true).toDate()
         : moment().endOf('day').utc(true).toDate();
 
-      const dateField = dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+      const dateField = dateType === "dateAssigned" ? "dateAssigned" : "dateOfAppointment";
 
       const dateFilter: any = {
         [dateField]: { $gte: start, $lte: end },
@@ -132,7 +132,7 @@ router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async
 
     const doctors = await User.find({ role: 'doctor' });
 
-    const dateType = req.query.dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+    const dateType = req.query.dateType === "dateAssigned" ? "dateAssigned" : "dateOfAppointment";
 
     const doctorsWithStats = await Promise.all(
       doctors.map(async (doctor) => {
@@ -358,7 +358,7 @@ router.post(
     }
   }
 );
-
+//downloading the report
 router.get(
   '/download-patient-report',
   protect,
@@ -375,8 +375,10 @@ router.get(
         ? moment(endDate as string).endOf('day').utc(true).toDate()
         : moment().endOf('day').utc(true).toDate();
 
+      const dateType = req.query.dateType === "dateAssigned" ? "dateAssigned" : "dateOfAppointment";
+
       const dateFilter: any = {
-        dateOfAppointment: { $gte: start, $lte: end },
+        [dateType]: { $gte: start, $lte: end },
       };
 
       const patients = await Patient.find(dateFilter)
@@ -408,6 +410,7 @@ router.get(
           'Gender',
           'Insurance',
           'Receptionist',
+          'Date Assigned',
         ]).font = { bold: true };
   
         worksheet.getColumn(1).width = 25;
@@ -417,6 +420,7 @@ router.get(
         worksheet.getColumn(5).width = 10;
         worksheet.getColumn(6).width = 20;
         worksheet.getColumn(7).width = 25;
+        worksheet.getColumn(7).width = 20;
   
         patients.forEach((patient) => {
           const rowData = [
@@ -427,6 +431,7 @@ router.get(
             patient.gender === "male" ? "Male" : "Female",
             patient.insurance || 'N/A',
             patient.receptionist?.name || 'N/A',
+            moment(patient.dateAssigned).format('MM-DD-YYYY') || 'N/A',
           ];
   
           worksheet.addRow(rowData);
