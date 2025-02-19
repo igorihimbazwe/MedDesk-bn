@@ -40,18 +40,20 @@ router.get(
             .toDate()
         : moment().endOf('day').utc(true).toDate();
 
+      const dateType = req.query.dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+
       const [totalAppointments, pendingAppointments, completeAppointments] =
         await Promise.all([
           Patient.countDocuments({
-            dateOfAppointment: { $gte: startDate, $lte: endDate },
+            [dateType]: { $gte: startDate, $lte: endDate },
           }),
           Patient.countDocuments({
             status: 'pending',
-            dateOfAppointment: { $gte: startDate, $lte: endDate },
+            [dateType]: { $gte: startDate, $lte: endDate },
           }),
           Patient.countDocuments({
             status: 'complete',
-            dateOfAppointment: { $gte: startDate, $lte: endDate },
+            [dateType]: { $gte: startDate, $lte: endDate },
           }),
         ]);
 
@@ -75,20 +77,22 @@ router.get(
   protect,
   checkRole('admin','superadmin'),
   async (req, res): Promise<void> => {
-    const { startDate, endDate, doctorId, status } = req.query;
+    const { startDate, endDate, doctorId, status, dateType } = req.query;
 
     try {
 
-        const start = startDate
-  ? moment(startDate as string).startOf('day').utc(true).toDate()
-  : moment().startOf('day').utc(true).toDate();
+      const start = startDate
+        ? moment(startDate as string).startOf('day').utc(true).toDate()
+        : moment().startOf('day').utc(true).toDate();
 
-const end = endDate
-  ? moment(endDate as string).endOf('day').utc(true).toDate()
-  : moment().endOf('day').utc(true).toDate();
+      const end = endDate
+        ? moment(endDate as string).endOf('day').utc(true).toDate()
+        : moment().endOf('day').utc(true).toDate();
+
+      const dateField = dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
 
       const dateFilter: any = {
-        dateOfAppointment: { $gte: start, $lte: end },
+        [dateField]: { $gte: start, $lte: end },
       };
 
       const patients = await Patient.find(dateFilter)
@@ -108,7 +112,7 @@ const end = endDate
 );
 
 router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async (req, res): Promise<void> => {
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate} = req.query;
 
   try {
 
@@ -128,22 +132,24 @@ router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async
 
     const doctors = await User.find({ role: 'doctor' });
 
+    const dateType = req.query.dateType === "dateOfAppointment" ? "dateOfAppointment" : "dateAssigned";
+
     const doctorsWithStats = await Promise.all(
       doctors.map(async (doctor) => {
         const [totalPatients, pendingPatients, completePatients] =
           await Promise.all([
             Patient.countDocuments({
               doctorAssigned: doctor._id,
-              dateOfAppointment: { $gte: start, $lte: end },
+              [dateType]: { $gte: start, $lte: end },
             }),
             Patient.countDocuments({
               doctorAssigned: doctor._id,
-              dateOfAppointment: { $gte: start, $lte: end },
+              [dateType]: { $gte: start, $lte: end },
               status: 'pending',
             }),
             Patient.countDocuments({
               doctorAssigned: doctor._id,
-              dateOfAppointment: { $gte: start, $lte: end },
+              [dateType]: { $gte: start, $lte: end },
               status: 'complete',
             }),
           ]);
