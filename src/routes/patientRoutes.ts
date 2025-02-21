@@ -124,7 +124,10 @@ router.put(
         return;
       }
 
-      const populatedPatient = await Patient.findById(updatedPatient._id).populate("doctorAssigned", "id name");
+      const populatedPatient = await Patient.findById(updatedPatient._id)
+      .populate("receptionist", "name")
+      .populate("doctorAssigned", "id name");
+
       res.status(200).json({
         message: "Appointment date updated successfully.",
         patient: populatedPatient,
