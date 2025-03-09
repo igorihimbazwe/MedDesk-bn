@@ -324,7 +324,10 @@ router.put(
 
       await patient.save();
 
-      const populatedPatient = await Patient.findById(patient._id).populate("doctorAssigned", "id name");
+      // const populatedPatient = await Patient.findById(patient._id).populate("doctorAssigned", "id name");
+      const populatedPatient = await Patient.findById(patient._id)
+      .populate("receptionist", "name")
+      .populate("doctorAssigned", "id name");
 
       res.status(200).json({ message: "Patient updated successfully", populatedPatient });
     } catch (error: any) {

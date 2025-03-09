@@ -45,15 +45,24 @@ router.get(
       const [totalAppointments, pendingAppointments, completeAppointments] =
         await Promise.all([
           Patient.countDocuments({
-            [dateType]: { $gte: startDate, $lte: endDate },
+            $or: [
+              { [dateType]: { $gte: startDate, $lte: endDate } },
+              { [dateType]: null },
+            ],
           }),
           Patient.countDocuments({
             status: 'pending',
-            [dateType]: { $gte: startDate, $lte: endDate },
+            $or: [
+              { [dateType]: { $gte: startDate, $lte: endDate } },
+              { [dateType]: null },
+            ],
           }),
           Patient.countDocuments({
             status: 'complete',
-            [dateType]: { $gte: startDate, $lte: endDate },
+            $or: [
+              { [dateType]: { $gte: startDate, $lte: endDate } },
+              { [dateType]: null },
+            ],
           }),
         ]);
 
@@ -92,7 +101,10 @@ router.get(
       const dateField = dateType === "dateAssigned" ? "dateAssigned" : "dateOfAppointment";
 
       const dateFilter: any = {
-        [dateField]: { $gte: start, $lte: end },
+        $or: [
+          { [dateField]: { $gte: start, $lte: end } },
+          { [dateField]: null },
+        ],
       };
 
       const patients = await Patient.find(dateFilter)
@@ -140,17 +152,26 @@ router.get('/doctors-with-stats', protect,checkRole('admin','superadmin'), async
           await Promise.all([
             Patient.countDocuments({
               doctorAssigned: doctor._id,
-              [dateType]: { $gte: start, $lte: end },
+              $or: [
+                { [dateType]: { $gte: start, $lte: end } }, 
+                { [dateType]: null }
+              ],
             }),
             Patient.countDocuments({
               doctorAssigned: doctor._id,
-              [dateType]: { $gte: start, $lte: end },
               status: 'pending',
+              $or: [
+                { [dateType]: { $gte: start, $lte: end } },
+                { [dateType]: null }
+              ],
             }),
             Patient.countDocuments({
               doctorAssigned: doctor._id,
-              [dateType]: { $gte: start, $lte: end },
               status: 'complete',
+              $or: [
+                { [dateType]: { $gte: start, $lte: end } },
+                { [dateType]: null }
+              ],
             }),
           ]);
 
