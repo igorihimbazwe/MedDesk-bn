@@ -55,6 +55,58 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+export const adminResetUserPassword = async (req: Request, res: Response): Promise<void> => {
+  const { userId } = req.params;
+  const { newPassword } = req.body;
+
+  if (!newPassword) {
+    res.status(400).json({ message: "New password is required." });
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400).json({ message: "Password must be at least 6 characters." });
+    return;
+  }
+
+  try {
+    const callerRole = req.user?.role;
+    const targetUser = await User.findById(userId);
+
+    if (!targetUser) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    const targetRole = targetUser.role;
+
+    // Hierarchy: superadmin can reset admin/doctor/receptionist
+    //            admin can reset doctor/receptionist only
+    //            nobody can reset a superadmin
+    const allowedTargets: Record<string, string[]> = {
+      superadmin: ["admin", "doctor", "receptionist"],
+      admin: ["doctor", "receptionist"],
+    };
+
+    const permitted = allowedTargets[callerRole ?? ""]?.includes(targetRole);
+
+    if (!permitted) {
+      res.status(403).json({
+        message: "You do not have permission to reset this user's password.",
+      });
+      return;
+    }
+
+    targetUser.password = newPassword;
+    await targetUser.save();
+
+    res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error during admin password reset:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
   const { oldPassword, newPassword } = req.body;
 

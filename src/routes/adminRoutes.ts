@@ -1,5 +1,6 @@
 import express,{Request,Response} from 'express';
 import { protect, checkRole } from '../middleware/authMiddleware';
+import { adminResetUserPassword } from '../controllers/authController';
 import Patient from '../models/patient';
 import User,{UserRole} from '../models/user';
 import moment from 'moment';
@@ -646,6 +647,13 @@ router.delete(
       res.status(500).json({ message: "Error deleting patient", error: error.message });
     }
   }
+);
+
+router.patch(
+  '/reset-user-password/:userId',
+  protect,
+  checkRole('admin', 'superadmin'),
+  adminResetUserPassword
 );
 
 export default router;
