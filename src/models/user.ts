@@ -16,8 +16,10 @@ export interface IUser extends Document {
   password: string;
   phoneNumber: string;
   role: UserRole;
-  status: "active" | "not available"; 
+  status: "active" | "not available";
   doctorSchedule: string[];
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -38,6 +40,8 @@ const UserSchema: Schema<IUser> = new Schema(
       default: "active", 
     },
     doctorSchedule: { type: [String], default: [] },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   {
     timestamps: true,

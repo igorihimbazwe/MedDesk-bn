@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import User from "../models/user";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "../utils/mailer";
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   const { email, password, role } = req.body;
@@ -55,8 +57,40 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const adminResetUserPassword = async (req: Request, res: Response): Promise<void> => {
-  const { userId } = req.params;
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ message: "Email is required." });
+    return;
+  }
+
+  const genericResponse = {
+    message: "If that email is registered, a password reset link has been sent.",
+  };
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      user.resetPasswordToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+      user.resetPasswordExpires = new Date(Date.now() + 30 * 60 * 1000);
+      await user.save();
+
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
+      await sendPasswordResetEmail(user.email, resetLink);
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error("Error during forgot password:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  const { token } = req.params;
   const { newPassword } = req.body;
 
   if (!newPassword) {
@@ -70,39 +104,26 @@ export const adminResetUserPassword = async (req: Request, res: Response): Promi
   }
 
   try {
-    const callerRole = req.user?.role;
-    const targetUser = await User.findById(userId);
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    if (!targetUser) {
-      res.status(404).json({ message: "User not found." });
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired reset link." });
       return;
     }
 
-    const targetRole = targetUser.role;
-
-    // Hierarchy: superadmin can reset admin/doctor/receptionist
-    //            admin can reset doctor/receptionist only
-    //            nobody can reset a superadmin
-    const allowedTargets: Record<string, string[]> = {
-      superadmin: ["admin", "doctor", "receptionist"],
-      admin: ["doctor", "receptionist"],
-    };
-
-    const permitted = allowedTargets[callerRole ?? ""]?.includes(targetRole);
-
-    if (!permitted) {
-      res.status(403).json({
-        message: "You do not have permission to reset this user's password.",
-      });
-      return;
-    }
-
-    targetUser.password = newPassword;
-    await targetUser.save();
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
 
     res.status(200).json({ message: "Password reset successfully." });
   } catch (error) {
-    console.error("Error during admin password reset:", error);
+    console.error("Error during password reset:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
